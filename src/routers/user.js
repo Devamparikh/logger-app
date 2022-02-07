@@ -1,64 +1,68 @@
 const express = require('express')
-const router = new express.Router()
+const {createClient} = require('redis')
 const User = require('../models/user')
+// const client = require('../db/redis')
+const router = new express.Router()
 
 
-router.post('/users', async (req, res) => {
-    let type = typeof(req.body)
-    console.log(type)
-    console.log(req.body)
-    // const array = req.body.toArray()
-    // const user = new User(req.body)
+
+
+router.post('/users/register', async (req, res) => {
+
+    if(req.body.password.length > 12){
+        throw new Error('Password cant be of length 12+')
+    }
+    const user = new User(req.body)
+    // console.log(user)
 
     try {
-        const user = await User.insertMany(req.body, (error, result) => {
-            if (error) {
-                return res.status(400).send({error: error._message, ok: false})
-                
-            }
-            res.status(201).send(result)
-        })
+        const userAfterSave = await user.save()
+        console.log(userAfterSave)
+        const client = createClient({
+            url: process.env.REDIS_URL
+          })
+        
+        client.on('error', (err) => console.log('Redis Client Error', err))
+        
+        await client.connect()
+
+
+        // const TEST_KEY = 'user_6200dc6ba0fb7ed26adc9383'
+        const userKey = 'user_' + userAfterSave._id
+        // console.log(userKey)
+        await client.json.set(userKey, '.', { id:userAfterSave._id, username: userAfterSave.username, password: userAfterSave.password });
+        // const value = await client.json.mget()
+        // const value = await client.sendCommand(['keys', '*'])
+
+        // console.log(value);
+
+
+        const token = await user.generateAuthToken()
+        res.status(201).send({user, token, 'ok':true})
     } catch (e) {
         console.log(e)
         res.status(400).send(e)
     }
 })
 
+router.post('/users/login', async (req, res) => {
 
-router.get('/users', async (req, res) => {
-    searchMsg = req.query.searchMsg
-    console.log("seachmsg: ", searchMsg)
     try {
-        const user = await User.find({ "userMessage" : { $regex: searchMsg } }, {userMessage: 1})
-        console.log("user: ", user)
-        res.send(user)
+        
+        
 
+        // console.log(value);
+
+
+        const user = await User.findByCredentials(req.body.username, req.body.password)
+        const token = await user.generateAuthToken()
+        res.status(200).send({user, token, 'ok':true})
     } catch (e) {
-        console.log("e: ", e)
+        console.log(e)
         res.status(400).send(e)
     }
 })
 
-
-router.get('/user', async (req, res) => {
-    category = req.query.category
-    date = req.query.date
-    date = new Date(date)
-    const last = new Date(date.getTime() + 86400000)
-    console.log("date: ", date)
-    console.log("last: ", last)
-
-    // console.log("seachmsg: ", searchMsg)
-    try {
-        const user = await User.find({ "category" : category, "createdTime": {$gte: date, $lt: last } }).count()
-        console.log("user: ", user)
-        // res.send(user)
-
-    } catch (e) {
-        console.log("e: ", e)
-        res.status(400).send(e)
-    }
-})
 
 
 module.exports = router
