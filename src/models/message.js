@@ -1,8 +1,9 @@
 const mongoose = require('mongoose')
 const messageSchema = new mongoose.Schema({
     userId: {
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
 
     },
     userMessage: {

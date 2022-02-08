@@ -1,5 +1,7 @@
 const express = require('express')
 const {createClient} = require('redis')
+const amqp = require('amqplib')
+const auth = require('../middleware/auth')
 const client = require('../db/redis')
 const User = require('../models/user')
 // const client = require('../db/redis')
@@ -39,30 +41,57 @@ router.post('/users/register', async (req, res) => {
 
         const token = await user.generateAuthToken()
         res.status(201).send({user, token, 'ok':true})
-    } catch (e) {
-        console.log(e)
-        res.status(400).send(e)
+    } catch (error) {
+        console.log(error)
+        res.status(400).send(error)
     }
 })
 
 router.post('/users/login', async (req, res) => {
 
     try {
-        
-        
-
-        // console.log(value);
-
-
         const user = await User.findByCredentials(req.body.username, req.body.password)
         const token = await user.generateAuthToken()
         res.status(200).send({user, token, 'ok':true})
-    } catch (e) {
-        console.log(e)
-        res.status(400).send(e)
+    } catch (error) {
+        console.log(error)
+        res.status(400).send(error)
     }
 })
 
 
+router.post('/users/publish', auth, async (req, res) => {
+    try {
+        const connection = await amqp.connect('amqp://localhost:5672')
+        const channel = await connection.createChannel()
+        QUEUE = 'dataValidator'
+        const randomNumber = Math.floor(Math.random() * (60 - 1 + 1) + 1)
+        msg = {id: req.user._id, message: req.body.message, randomNumber: randomNumber}
+        const result = await channel.assertQueue(QUEUE)
+        channel.sendToQueue(QUEUE, Buffer.from(JSON.stringify(msg)))
+    } catch (error) {
+        console.log(error)
+        res.status(400).send(error)
+    }
+})
+
+router.get('/users/consume', auth, async (req, res) => {
+    try {
+        const connection = await amqp.connect('amqp://localhost:5672')
+        const channel = await connection.createChannel()
+        QUEUE = 'dataValidator'
+        const result = await channel.assertQueue(QUEUE)
+        channel.consume(QUEUE, message => {
+            const input = JSON.parse(message.content.toString())
+            if((input.randomNumber % 10) == 0)
+            console.log(`recieved dataValidator with input ${input.randomNumber}`)
+        })
+
+        // console.log(input.message)
+    } catch (error) {
+        console.log(error)
+        res.status(400).send(error)
+    }
+})
 
 module.exports = router

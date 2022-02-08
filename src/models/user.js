@@ -37,6 +37,14 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 })
 
+
+userSchema.virtual('messages', {
+    ref: 'Message', 
+    localField: '_id',
+    foreignField: 'userId'
+})
+
+
 userSchema.methods.generateAuthToken = async function() {
     const user = this
     const token = jwt.sign({_id: user._id.toString()}, process.env.JWT_SECRET)
