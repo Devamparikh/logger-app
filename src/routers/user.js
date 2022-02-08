@@ -1,5 +1,6 @@
 const express = require('express')
 const {createClient} = require('redis')
+const client = require('../db/redis')
 const User = require('../models/user')
 // const client = require('../db/redis')
 const router = new express.Router()
@@ -23,12 +24,11 @@ router.post('/users/register', async (req, res) => {
           })
         
         client.on('error', (err) => console.log('Redis Client Error', err))
-        
         await client.connect()
-
+        
 
         // const TEST_KEY = 'user_6200dc6ba0fb7ed26adc9383'
-        const userKey = 'user_' + userAfterSave._id
+        const userKey = 'user_' + userAfterSave.username
         // console.log(userKey)
         await client.json.set(userKey, '.', { id:userAfterSave._id, username: userAfterSave.username, password: userAfterSave.password });
         // const value = await client.json.mget()

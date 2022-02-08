@@ -2,7 +2,8 @@ const express = require('express')
 const app = express()
 
 require('./db/mongoose')
-require('./db/redis')
+const client = require('./db/redis')
+client()
 const userRouter = require('./routers/user')
 
 app.use(express.json())

@@ -56,25 +56,42 @@ userSchema.statics.findByCredentials = async (username, password) => {
     client.on('error', (err) => console.log('Redis Client Error', err))
     
     await client.connect()
-    const value = await client.sendCommand(['keys', '*'])
+    findKey = 'user_' + username
+    const value = await client.json.get(findKey)
+    console.log("value: ", value)
+
+    if(!value){
+        throw new Error('no such Credentials exits on db')
+    }
+    const isMatch = await bcrypt.compare(password, value.password)
+    if(!isMatch) {
+        throw new Error('Invalid password')
+    }
+
+
+    // const value = await client.sendCommand(['keys', '*'])
+    // console.log("value: ", value)
 
     
-    const userID = value.map(async (element) => {
-        console.log("element: ", element)
-        const jsonObject = await client.json.get(element)
-        console.log("json: ",jsonObject)
-        if (jsonObject.username === username) {
-            const isMatch = await bcrypt.compare(password, jsonObject.password)
-            if(!isMatch) {
-                throw new Error('Invalid password')
-            }
-            return jsonObject.id
-        }
-    })
-    const IDS = await userID
-    console.log(userID.toString)
-    console.log(IDS)
-    const user = await User.findOne({userID})
+    // const userID = value.map(async (element) => {
+    //     console.log("element: ", element)
+    //     const jsonObject = await client.json.get(element)
+    //     console.log("json: ",jsonObject)
+    //     if (jsonObject.username === username) {
+    //         const isMatch = await bcrypt.compare(password, jsonObject.password)
+    //         if(!isMatch) {
+    //             throw new Error('Invalid password')
+    //         }
+    //         return jsonObject.id
+    //     }
+    // })
+
+
+
+    // const IDS = await userID
+    // console.log(userID.toString)
+    // console.log(IDS)
+    const user = await User.findById(value.id)
     if(!user) {
         throw new Error('Unable to login.') 
     }
