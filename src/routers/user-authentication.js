@@ -10,12 +10,14 @@ const router = new express.Router()
 
 
 
-router.post('/users/register', async (req, res) => {
-
-    if(req.body.password.length > 12){
-        throw new Error('Password cant be of length 12+')
+router.post('/user/register', async (req, res) => {
+    if(!req.body.password){
+        return res.status(400).send({error: 'password required',  ok:false})
     }
-    const user = new User(req.body)
+    if(req.body.password.length > 12){
+        return res.status(400).send({error: 'Password cant be of length 12+',  ok:false})
+    }
+    const user = await new User(req.body)
     // console.log(user)
 
     try {
@@ -34,6 +36,7 @@ router.post('/users/register', async (req, res) => {
         // console.log(userKey)
         await client.json.set(userKey, '.', { id:userAfterSave._id, username: userAfterSave.username, password: userAfterSave.password });
         // const value = await client.json.mget()
+        // await client.sendCommand(['flushall'])
         // const value = await client.sendCommand(['keys', '*'])
 
         // console.log(value);
@@ -43,11 +46,11 @@ router.post('/users/register', async (req, res) => {
         res.status(201).send({user, token, 'ok':true})
     } catch (error) {
         console.log(error)
-        res.status(400).send(error)
+        res.status(400).send({error: error._message, ok:false})
     }
 })
 
-router.post('/users/login', async (req, res) => {
+router.post('/user/login', async (req, res) => {
 
     try {
         const user = await User.findByCredentials(req.body.username, req.body.password)
@@ -55,43 +58,12 @@ router.post('/users/login', async (req, res) => {
         res.status(200).send({user, token, 'ok':true})
     } catch (error) {
         console.log(error)
-        res.status(400).send(error)
+        res.status(400).send({error: error, ok: false})
     }
 })
 
 
-router.post('/users/publish', auth, async (req, res) => {
-    try {
-        const connection = await amqp.connect('amqp://localhost:5672')
-        const channel = await connection.createChannel()
-        QUEUE = 'dataValidator'
-        const randomNumber = Math.floor(Math.random() * (60 - 1 + 1) + 1)
-        msg = {id: req.user._id, message: req.body.message, randomNumber: randomNumber}
-        const result = await channel.assertQueue(QUEUE)
-        channel.sendToQueue(QUEUE, Buffer.from(JSON.stringify(msg)))
-    } catch (error) {
-        console.log(error)
-        res.status(400).send(error)
-    }
-})
 
-router.get('/users/consume', auth, async (req, res) => {
-    try {
-        const connection = await amqp.connect('amqp://localhost:5672')
-        const channel = await connection.createChannel()
-        QUEUE = 'dataValidator'
-        const result = await channel.assertQueue(QUEUE)
-        channel.consume(QUEUE, message => {
-            const input = JSON.parse(message.content.toString())
-            if((input.randomNumber % 10) == 0)
-            console.log(`recieved dataValidator with input ${input.randomNumber}`)
-        })
 
-        // console.log(input.message)
-    } catch (error) {
-        console.log(error)
-        res.status(400).send(error)
-    }
-})
 
 module.exports = router

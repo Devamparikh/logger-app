@@ -10,11 +10,6 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    requestCount: {
-        type: 'Number',
-        // required: true,
-        default: 0
-    },
     category: {
         type: String,
         required: true,

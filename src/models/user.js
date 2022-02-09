@@ -8,12 +8,18 @@ const {createClient} = require('redis')
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
-        unique: true,
+        index: {unique: true, dropDups: true},
         required: true,
         minlength: 5,
         maxlength: 15,
         trim: true,
-        dropDups: true
+        // dropDups: true,
+        validate(value) {
+            var myRegxp = /^([a-zA-Z0-9_-]){5,15}$/;
+            if (!myRegxp.test(value)) {
+              throw new Error('Username should be between 5 to 15 characters long and only alphanumeric is allowed')
+            }
+          },
     },
     password: {
         type: 'string',
