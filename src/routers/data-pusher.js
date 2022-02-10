@@ -17,7 +17,7 @@ router.post('/data-pusher', auth, async (req, res) => {
         const sendToQueueResult = await channel.sendToQueue(QUEUE, Buffer.from(JSON.stringify(msg)))
         // console.log("send" ,sendToQueueResult)
         if (sendToQueueResult) {
-            res.status(400).send({message: 'data send to queue successful.', ok: true})
+            res.status(200).send({message: 'data send to queue successful.', ok: true})
         }
 
     } catch (error) {

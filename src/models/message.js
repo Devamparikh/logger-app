@@ -13,11 +13,11 @@ const messageSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        validate(value) {
-            if (value !== ('Direct' || 'Retried' || 'Failed')) {
-                throw new Error('Invalid value for category')
-            }
-        }
+        // validate(value) {
+        //     if ((value !== 'Retried') || (value !== 'Direct') || (value !== 'Failed')) {
+        //         throw new Error('Invalid value for category')
+        //     }
+        // }
 
     },
     createdTime: {
